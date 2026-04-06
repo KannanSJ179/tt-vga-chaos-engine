@@ -24,6 +24,7 @@ project:
     - "gamepad_pmod_decoder.v"
     - "gamepad_pmod_driver.v"
     - "gamepad_pmod_single.v"
+    - "hsync_generator.v"
     - "missile_starter.v"
     - "missile.v"
 
