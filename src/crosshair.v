@@ -16,7 +16,7 @@ module crosshair (
   localparam [7:0] SPRITE_WIDTH  = 10;
   localparam [7:0] SPRITE_HEIGHT = 10;
 
-  localparam [9:0] CROSSHAIR[9:0] = '{
+  localparam [9:0] CROSSHAIR [9:0] = {
     10'b00_0000_0011,
     10'b00_0000_0011,
     10'b00_0000_0011,
