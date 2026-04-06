@@ -68,4 +68,24 @@ module crosshair (
     end
   end
 
+  function automatic crosshair_pixel;
+    input [3:0] r;
+    input [3:0] c;
+    begin
+      case (r)
+        4'd0: crosshair_pixel = (10'b00_0000_0011 >> c) & 1'b1;
+        4'd1: crosshair_pixel = (10'b00_0000_0011 >> c) & 1'b1;
+        4'd2: crosshair_pixel = (10'b00_0000_0011 >> c) & 1'b1;
+        4'd3: crosshair_pixel = (10'b00_0000_0011 >> c) & 1'b1;
+        4'd4: crosshair_pixel = (10'b00_0000_0011 >> c) & 1'b1;
+        4'd5: crosshair_pixel = (10'b00_0000_0011 >> c) & 1'b1;
+        4'd6: crosshair_pixel = (10'b00_0000_0011 >> c) & 1'b1;
+        4'd7: crosshair_pixel = (10'b00_0000_0011 >> c) & 1'b1;
+        4'd8: crosshair_pixel = (10'b11_1111_1111 >> c) & 1'b1;
+        4'd9: crosshair_pixel = (10'b11_1111_1111 >> c) & 1'b1;
+        default: crosshair_pixel = 1'b0;
+      endcase
+    end
+  endfunction
+
 endmodule
