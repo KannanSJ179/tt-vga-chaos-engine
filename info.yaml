@@ -21,6 +21,7 @@ project:
     - "crosshair.v"
     - "explossion.v"
     - "fortress.v"
+    - "game_over_banner.v"
     - "gamepad_pmod_decoder.v"
     - "gamepad_pmod_driver.v"
     - "gamepad_pmod_single.v"

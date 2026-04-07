@@ -49,10 +49,12 @@ module tt_um_ds_missile_command(
   localparam FRAMES_CROSSHAIR_DELAY = 16'h0100;
   localparam EXPLOSION_COUNT = 4;
 
-  localparam CROSSHAIR_RGB_COLOR = 6'b00_1100;
-  localparam FORTRESS_RGB_COLOR = 6'b01_0101;
-  localparam EXPLOSSION_RGB_COLOR = 6'b11_1111;
-  localparam MISSILE_RGB_COLOR = 6'b00_1100;
+  localparam CROSSHAIR_RGB_COLOR          = 6'b00_1100;
+  localparam FORTRESS_RGB_COLOR           = 6'b01_0101;
+  localparam EXPLOSSION_RGB_COLOR         = 6'b11_1111;
+  localparam MISSILE_RGB_COLOR            = 6'b00_1100;
+  localparam START_BANNER_RGB_COLOR       = 6'b00_1100;
+  localparam GAME_OVER_BANNER_RGB_COLOR   = 6'b11_0000;
 
   wire [EXPLOSION_COUNT-1:0] explosion_active;
   wire [1:0] explosion_R [0:EXPLOSION_COUNT-1];
@@ -102,13 +104,21 @@ module tt_um_ds_missile_command(
   reg [1:0] B_next;
 
   reg [2:0] missile_impact_prev;
-  reg       inp_select_prev;
+  reg       inp_start_prev;
   reg [1:0] impact_pulses;
 
   reg [1:0] start_banner_R;
   reg [1:0] start_banner_G;
   reg [1:0] start_banner_B;
-  reg start_banner_active;
+  reg       start_banner_active;
+
+  reg [1:0] game_over_banner_R;
+  reg [1:0] game_over_banner_G;
+  reg [1:0] game_over_banner_B;
+  reg       game_over_banner_active;
+
+  reg       start_game_pending;
+  reg       game_over;
 
   hvsync_generator hvsync_gen(
     .clk(clk),
@@ -320,12 +330,29 @@ module tt_um_ds_missile_command(
       .y(pix_y),
       .pos_x(320),
       .pos_y(240),
-      .RGB_Color(CROSSHAIR_RGB_COLOR),
+      .RGB_Color(START_BANNER_RGB_COLOR),
       .paint_banner(impacts == 2'b00),
       .active(start_banner_active),
       .R(start_banner_R),
       .G(start_banner_G),
       .B(start_banner_B)
+  );
+
+  game_over_banner over (
+      .rst_n(rst_n),
+      .clk(clk),
+      .frames_clk(vsync),
+      .lines_clk(hsync),
+      .x(pix_x),
+      .y(pix_y),
+      .pos_x(320),
+      .pos_y(240),
+      .RGB_Color(GAME_OVER_BANNER_RGB_COLOR),
+      .paint_banner(game_over),
+      .active(game_over_banner_active),
+      .R(game_over_banner_R),
+      .G(game_over_banner_G),
+      .B(game_over_banner_B)
   );
 
   fortress f(
@@ -353,6 +380,24 @@ module tt_um_ds_missile_command(
       R_next = 2'b00;
       G_next = 2'b00;
       B_next = 2'b00;
+    end else if (impacts == 2'b00) begin
+      R_next = 2'b00;
+      G_next = 2'b00;
+      B_next = 2'b00;
+
+      if (game_over) begin
+        if (game_over_banner_active) begin
+          R_next = game_over_banner_R;
+          G_next = game_over_banner_G;
+          B_next = game_over_banner_B;
+        end
+      end else begin
+        if (start_banner_active) begin
+          R_next = start_banner_R;
+          G_next = start_banner_G;
+          B_next = start_banner_B;
+        end
+      end
     end else begin
       // explosions
       for (i = 0; i < EXPLOSION_COUNT; i = i + 1) begin
@@ -380,16 +425,10 @@ module tt_um_ds_missile_command(
       end
 
       // crosshair on top
-      if (crosshair_active && impacts > 0) begin
+      if (crosshair_active) begin
         R_next = crosshair_R;
         G_next = crosshair_G;
         B_next = crosshair_B;
-      end
-
-      if (start_banner_active && impacts == 2'b00) begin
-        R_next = start_banner_R;
-        G_next = start_banner_G;
-        B_next = start_banner_B;
       end
     end
   end
@@ -400,21 +439,24 @@ module tt_um_ds_missile_command(
 
   always @(posedge hsync) begin
     if (!rst_n) begin
-      inp_a_prev         <= 1'b0;
-      fire_pulse         <= 1'b0;
+      inp_a_prev          <= 1'b0;
+      fire_pulse          <= 1'b0;
 
-      missile_fire       <= 3'b000;
-      missile_fire_pulse <= 4'd0;
-      missiles_in_flight <= 2'd1;
-      missiles_gone_prev <= 1'b0;
+      missile_fire        <= 3'b000;
+      missile_fire_pulse  <= 4'd0;
+      missiles_in_flight  <= 2'd1;
+      missiles_gone_prev  <= 1'b0;
 
       missile_impact_prev <= 3'b000;
-      inp_select_prev     <= 1'b0;
+      inp_start_prev      <= 1'b0;
 
-      counter <= 0;
-      crosshair_x <= 320;
-      crosshair_y <= 240;
-      impacts <= 2'b11;
+      counter             <= 16'd0;
+      crosshair_x         <= 10'd320;
+      crosshair_y         <= 10'd240;
+      impacts             <= 2'b00;
+
+      start_game_pending  <= 1'b0;
+      game_over           <= 1'b0;
     end else begin
       // edge detectors
       impact_pulses =
@@ -422,31 +464,42 @@ module tt_um_ds_missile_command(
           ({1'b0, (missile_impact[1] & ~missile_impact_prev[1])}) +
           ({1'b0, (missile_impact[2] & ~missile_impact_prev[2])});
 
-      // Bomb fire pulse
-      fire_pulse <= inp_a & ~inp_a_prev;
+      // Bomb fire pulse only when game is active
+      fire_pulse <= (impacts > 0) && inp_a && ~inp_a_prev;
       inp_a_prev <= inp_a;
 
-      // Restart game on select rising edge
-      if (inp_select & ~inp_select_prev) begin
-        if (impacts == 2'b00)
-          impacts <= 2'b11;
-      end else if (impact_pulses != 2'b00) begin
-        if (impacts > impact_pulses)
+      // Restart game on START rising edge
+      if (inp_start & ~inp_start_prev) begin
+        if (game_over) begin
+          game_over <= 1'b0;
+        end else begin
+          if (impacts == 2'b00) begin
+            impacts            <= 2'b11;
+            missile_fire       <= 3'b000;
+            missile_fire_pulse <= 4'd0;
+            crosshair_x        <= 10'd320;
+            crosshair_y        <= 10'd240;
+            counter            <= 16'd0;
+            start_game_pending <= 1'b1;
+          end
+        end
+      end else if ((impacts > 0) && (impact_pulses != 2'b00)) begin
+        if (impacts > impact_pulses) begin
           impacts <= impacts - impact_pulses;
-        else
+        end else begin
           impacts <= 2'b00;
+          game_over <= 1'b1;
+        end
       end
 
-      inp_select_prev     <= inp_select;
+      inp_start_prev      <= inp_start;
       missile_impact_prev <= missile_impact;
 
       // Free-running pseudo-random source
-      if (impacts > 0) begin
-        if (missiles_in_flight + 1'b1 == 2'b00) begin
-          missiles_in_flight <= 2'b01;
-        end else begin
-          missiles_in_flight <= missiles_in_flight + 1'b1;
-        end
+      if (missiles_in_flight + 1'b1 == 2'b00) begin
+        missiles_in_flight <= 2'b01;
+      end else begin
+        missiles_in_flight <= missiles_in_flight + 1'b1;
       end
 
       // Track previous all-gone state
@@ -459,10 +512,11 @@ module tt_um_ds_missile_command(
           missile_fire <= 3'b000;
       end
 
-      // Launch only on transition into "all missiles gone"
-      if (missiles_gone && !missiles_gone_prev) begin
+      // Launch only when game is active
+      if ((impacts > 0) && (start_game_pending || (missiles_gone && !missiles_gone_prev))) begin
         missile_fire_pulse <= 4'b1111;
         missile_fire       <= 3'b000;
+        start_game_pending <= 1'b0;
 
         missile_fire[0]    <= 1'b1;
         missile_start_x[0] <= starter_x;
@@ -471,7 +525,7 @@ module tt_um_ds_missile_command(
 
         if (missiles_in_flight >= 2'd2) begin
           missile_fire[1]    <= 1'b1;
-          missile_start_x[1] <= starter_x + 120;
+          missile_start_x[1] <= starter_x + 10'd120;
           missile_coeff_x[1] <= starter_coeff_x;
           missile_coeff_y[1] <= starter_coeff_y;
         end
@@ -485,43 +539,45 @@ module tt_um_ds_missile_command(
       end
 
       // Crosshair
-      if (inp_up) begin
-        if (counter + 1'b1 < FRAMES_CROSSHAIR_DELAY) begin
-          counter <= counter + 1'b1;
-        end else begin
-          counter <= 0;
-          if (crosshair_y - 1'b1 > 0)
-            crosshair_y <= crosshair_y - 2'b11;
+      if (impacts > 0) begin
+        if (inp_up) begin
+          if (counter + 1'b1 < FRAMES_CROSSHAIR_DELAY) begin
+            counter <= counter + 1'b1;
+          end else begin
+            counter <= 16'd0;
+            if (crosshair_y - 1'b1 > 0)
+              crosshair_y <= crosshair_y - 2'b11;
+          end
         end
-      end
 
-      if (inp_down) begin
-        if (counter + 1'b1 < FRAMES_CROSSHAIR_DELAY) begin
-          counter <= counter + 1'b1;
-        end else begin
-          counter <= 0;
-          if (crosshair_y + 1'b1 <= 480)
-            crosshair_y <= crosshair_y + 2'b11;
+        if (inp_down) begin
+          if (counter + 1'b1 < FRAMES_CROSSHAIR_DELAY) begin
+            counter <= counter + 1'b1;
+          end else begin
+            counter <= 16'd0;
+            if (crosshair_y + 1'b1 <= 10'd480)
+              crosshair_y <= crosshair_y + 2'b11;
+          end
         end
-      end
 
-      if (inp_left) begin
-        if (counter + 1'b1 < FRAMES_CROSSHAIR_DELAY) begin
-          counter <= counter + 1'b1;
-        end else begin
-          counter <= 0;
-          if (crosshair_x - 1'b1 > 0)
-            crosshair_x <= crosshair_x - 2'b11;
+        if (inp_left) begin
+          if (counter + 1'b1 < FRAMES_CROSSHAIR_DELAY) begin
+            counter <= counter + 1'b1;
+          end else begin
+            counter <= 16'd0;
+            if (crosshair_x - 1'b1 > 0)
+              crosshair_x <= crosshair_x - 2'b11;
+          end
         end
-      end
 
-      if (inp_right) begin
-        if (counter + 1'b1 < FRAMES_CROSSHAIR_DELAY) begin
-          counter <= counter + 1'b1;
-        end else begin
-          counter <= 0;
-          if (crosshair_x + 1'b1 <= 640)
-            crosshair_x <= crosshair_x + 2'b11;
+        if (inp_right) begin
+          if (counter + 1'b1 < FRAMES_CROSSHAIR_DELAY) begin
+            counter <= counter + 1'b1;
+          end else begin
+            counter <= 16'd0;
+            if (crosshair_x + 1'b1 <= 10'd640)
+              crosshair_x <= crosshair_x + 2'b11;
+          end
         end
       end
     end

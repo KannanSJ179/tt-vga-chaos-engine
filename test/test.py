@@ -29,16 +29,36 @@ BUTTON_A     = 1 << 3
 BUTTON_START = 1 << 8
 
 
-def get_hsync(uo_out_val: int) -> int:
-    return (uo_out_val >> 7) & 0x1
+def safe_uo_out_int(dut):
+    """
+    Return integer value of uo_out if fully resolved (0/1 only),
+    else return None.
+    """
+    s = dut.uo_out.value.binstr
+    if any(ch not in "01" for ch in s):
+        return None
+    return int(s, 2)
 
 
-def get_vsync(uo_out_val: int) -> int:
-    return (uo_out_val >> 3) & 0x1
+def get_hsync_safe(dut):
+    val = safe_uo_out_int(dut)
+    if val is None:
+        return None
+    return (val >> 7) & 0x1
 
 
-def get_rgb(uo_out_val: int) -> int:
-    return uo_out_val & COLOR_MASK
+def get_vsync_safe(dut):
+    val = safe_uo_out_int(dut)
+    if val is None:
+        return None
+    return (val >> 3) & 0x1
+
+
+def get_rgb_safe(dut):
+    val = safe_uo_out_int(dut)
+    if val is None:
+        return None
+    return val & COLOR_MASK
 
 
 async def do_reset(dut):
@@ -51,6 +71,7 @@ async def do_reset(dut):
     dut.rst_n.value  = 0
     await ClockCycles(dut.clk, 10)
     dut.rst_n.value  = 1
+    await ClockCycles(dut.clk, 50)
 
 
 async def send_gamepad(dut, buttons_12bit):
@@ -79,15 +100,19 @@ async def send_gamepad(dut, buttons_12bit):
 async def wait_for_vsync_rising_from_uo(dut):
     """
     Wait for a rising edge on the VSYNC bit carried in uo_out[3].
-    Gate-level safe because it uses only top-level outputs.
+    Ignore unresolved gate-level samples containing X/Z.
     """
-    prev = get_vsync(int(dut.uo_out.value))
+    prev = None
 
     while True:
         await RisingEdge(dut.clk)
-        cur = get_vsync(int(dut.uo_out.value))
-        if prev == 0 and cur == 1:
+        cur = get_vsync_safe(dut)
+        if cur is None:
+            continue
+
+        if prev is not None and prev == 0 and cur == 1:
             return
+
         prev = cur
 
 
@@ -100,8 +125,6 @@ async def find_color_in_region(dut, y_start, y_end, x_start, x_end, color):
     """
     await wait_for_vsync_rising_from_uo(dut)
 
-    # Same timing assumption your original test used:
-    # after vsync rising, skip top blanking plus lines before the region.
     early = 5
     skip_cycles = (V_TOP + y_start) * H_MAX - early
     if skip_cycles > 0:
@@ -110,7 +133,6 @@ async def find_color_in_region(dut, y_start, y_end, x_start, x_end, color):
     scan_rows = y_end - y_start + 3
     total_scan_cycles = scan_rows * H_MAX
 
-    # We are 'early' cycles before the nominal first pixel of row y_start
     frame_cycles = (V_TOP + y_start) * H_MAX - early
 
     for _ in range(total_scan_cycles):
@@ -121,11 +143,15 @@ async def find_color_in_region(dut, y_start, y_end, x_start, x_end, color):
         py = (frame_cycles // H_MAX) - V_TOP
 
         if y_start <= py <= y_end and x_start <= px <= x_end:
-            rgb = get_rgb(int(dut.uo_out.value))
+            rgb = get_rgb_safe(dut)
+            if rgb is None:
+                continue
+
             if rgb == color:
+                val = safe_uo_out_int(dut)
                 dut._log.info(
                     f"Found color 0x{color:02x} at approx ({px}, {py}), "
-                    f"uo_out=0x{int(dut.uo_out.value):02x}"
+                    f"uo_out=0x{val:02x}"
                 )
                 return True
 
@@ -149,7 +175,6 @@ async def test_press_start_banner_then_crosshair_green(dut):
     dut._log.info("TEST: press START, then confirm green crosshair")
     await do_reset(dut)
 
-    # Start game
     await ClockCycles(dut.clk, H_MAX * 2)
     await send_gamepad(dut, BUTTON_START)
     await ClockCycles(dut.clk, H_MAX * 4)
@@ -177,23 +202,18 @@ async def test_explosion_white_on_button_a(dut):
     dut._log.info("TEST: white explosion pixels after pressing START and A")
     await do_reset(dut)
 
-    # Leave idle/banner mode first
     await ClockCycles(dut.clk, H_MAX * 2)
     await send_gamepad(dut, BUTTON_START)
     await ClockCycles(dut.clk, H_MAX * 4)
 
-    # Ensure inp_a_prev settles low first
     await ClockCycles(dut.clk, H_MAX * 2)
 
-    # Press A
     dut._log.info("Pressing button A...")
     await send_gamepad(dut, BUTTON_A)
 
-    # Let fire_pulse be seen by the game logic
     await ClockCycles(dut.clk, H_MAX * 3)
     dut.ui_in.value = 0
 
-    # Wait for explosion animation to develop
     FRAMES_DELAY = 0x0960
     await ClockCycles(dut.clk, 2 * FRAMES_DELAY * H_MAX)
 
