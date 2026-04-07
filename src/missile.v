@@ -43,6 +43,10 @@ module missile (
   reg        line_hit;
   reg        collision_hit;
 
+  // Registered request from pixel/render domain to motion domain
+  reg        stop_request_r;
+  reg        impact_request_r;
+
   always @(posedge lines_clk or negedge rst_n) begin
     if (!rst_n) begin
       init_x            <= 10'd0;
@@ -53,7 +57,6 @@ module missile (
       frames_counter    <= 16'd0;
       flying            <= 1'b0;
       reverse_x         <= 1'b0;
-      impact            <= 1'b0;
     end else begin
       if (fire && !flying) begin
         init_x            <= initial_x;
@@ -62,9 +65,9 @@ module missile (
         coeff_x           <= coefficient_x;
         coeff_y           <= coefficient_y;
         frames_counter    <= 16'd0;
-        flying            <= 1'b1;
-        reverse_x         <= initial_x > 320 ? 1'b1 : 1'b0;
+        flying            <= 1'b0;
         impact            <= 1'b0;
+        reverse_x         <= initial_x > 320 ? 1'b1 : 1'b0;
       end else if (flying) begin
         if (frames_counter + 1'b1 < FRAMES_DELAY) begin
           frames_counter <= frames_counter + 1'b1;
@@ -92,6 +95,12 @@ module missile (
               current_x <= 10'd639;
               flying    <= 1'b0;
             end
+          end
+
+          if (stop_request_r) begin
+            flying <= 1'b0;
+            if (impact_request_r)
+              impact <= 1'b1;
           end
         end
       end
@@ -145,19 +154,27 @@ module missile (
       R      <= 2'b00;
       G      <= 2'b00;
       B      <= 2'b00;
+      impact <= 1'b0;
+      stop_request_r   <= 1'b0;
+      impact_request_r <= 1'b0;
     end else begin
       active <= 1'b0;
       R      <= 2'b00;
       G      <= 2'b00;
       B      <= 2'b00;
 
+      if (fire && !flying) begin
+        stop_request_r   <= 1'b0;
+        impact_request_r <= 1'b0;
+      end
+
       if (flying && line_hit && !collision_hit) begin
         if ((R_next == 2'b11) && (G_next == 2'b11) && (B_next == 2'b11) && (y >= current_y - coeff_y)) begin
-          flying <= 1'b0;
+          stop_request_r <= 1'b1;
         end
         if ((R_next == 2'b01) && (G_next == 2'b01) && (B_next == 2'b01) && (y >= current_y - coeff_y)) begin
-          flying <= 1'b0;
-          impact <= 1'b1;
+          stop_request_r   <= 1'b1;
+          impact_request_r <= 1'b1;
         end
         active <= 1'b1;
         R      <= 2'b11;

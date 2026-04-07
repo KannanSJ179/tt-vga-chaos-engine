@@ -101,6 +101,10 @@ module tt_um_ds_missile_command(
   reg [1:0] G_next;
   reg [1:0] B_next;
 
+  reg [2:0] missile_impact_prev;
+  reg       inp_select_prev;
+  reg [1:0] impact_pulses;
+
   hvsync_generator hvsync_gen(
     .clk(clk),
     .reset(~rst_n),
@@ -366,22 +370,6 @@ module tt_um_ds_missile_command(
   assign G = G_next;
   assign B = B_next;
 
-  // Fix separate edges
-  always @(posedge missile_impact[0]) begin
-    impacts <= impacts - 1'b1;
-  end
-  always @(posedge missile_impact[1]) begin
-    impacts <= impacts - 1'b1;
-  end
-  always @(posedge missile_impact[2]) begin
-    impacts <= impacts - 1'b1;
-  end
-  always @(posedge inp_select) begin
-    if (impacts == 2'b00) begin
-      impacts <= 2'b11;
-    end
-  end
-
   always @(posedge hsync) begin
     if (!rst_n) begin
       inp_a_prev         <= 1'b0;
@@ -390,16 +378,39 @@ module tt_um_ds_missile_command(
       missile_fire       <= 3'b000;
       missile_fire_pulse <= 4'd0;
       missiles_in_flight <= 2'd1;
-      missiles_gone_prev <= 1'b0; // force first wave after reset
+      missiles_gone_prev <= 1'b0;
+
+      missile_impact_prev <= 3'b000;
+      inp_select_prev     <= 1'b0;
 
       counter <= 0;
       crosshair_x <= 320;
       crosshair_y <= 240;
       impacts <= 2'b11;
     end else begin
+      // edge detectors
+      impact_pulses =
+          ({1'b0, (missile_impact[0] & ~missile_impact_prev[0])}) +
+          ({1'b0, (missile_impact[1] & ~missile_impact_prev[1])}) +
+          ({1'b0, (missile_impact[2] & ~missile_impact_prev[2])});
+
       // Bomb fire pulse
       fire_pulse <= inp_a & ~inp_a_prev;
       inp_a_prev <= inp_a;
+
+      // Restart game on select rising edge
+      if (inp_select & ~inp_select_prev) begin
+        if (impacts == 2'b00)
+          impacts <= 2'b11;
+      end else if (impact_pulses != 2'b00) begin
+        if (impacts > impact_pulses)
+          impacts <= impacts - impact_pulses;
+        else
+          impacts <= 2'b00;
+      end
+
+      inp_select_prev     <= inp_select;
+      missile_impact_prev <= missile_impact;
 
       // Free-running pseudo-random source
       if (missiles_in_flight + 1'b1 == 2'b00) begin
@@ -423,26 +434,23 @@ module tt_um_ds_missile_command(
         missile_fire_pulse <= 4'b1111;
         missile_fire       <= 3'b000;
 
-        // Always launch missile 0
-        missile_fire[0]      <= 1'b1;
-        missile_start_x[0]   <= starter_x;
-        missile_coeff_x[0]   <= starter_coeff_x;
-        missile_coeff_y[0]   <= starter_coeff_y;
+        missile_fire[0]    <= 1'b1;
+        missile_start_x[0] <= starter_x;
+        missile_coeff_x[0] <= starter_coeff_x;
+        missile_coeff_y[0] <= starter_coeff_y;
 
-        // Launch missile 1 for sampled values 2 or 3
         if (missiles_in_flight >= 2'd2) begin
-          missile_fire[1]      <= 1'b1;
-          missile_start_x[1]   <= starter_x + 120;
-          missile_coeff_x[1]   <= starter_coeff_x;
-          missile_coeff_y[1]   <= starter_coeff_y;
+          missile_fire[1]    <= 1'b1;
+          missile_start_x[1] <= starter_x + 120;
+          missile_coeff_x[1] <= starter_coeff_x;
+          missile_coeff_y[1] <= starter_coeff_y;
         end
 
-        // Launch missile 2 only for sampled value 3
         if (missiles_in_flight == 2'd3) begin
-          missile_fire[2]      <= 1'b1;
-          missile_start_x[2]   <= starter_x + 10'd320;
-          missile_coeff_x[2]   <= starter_coeff_x;
-          missile_coeff_y[2]   <= starter_coeff_y;
+          missile_fire[2]    <= 1'b1;
+          missile_start_x[2] <= starter_x + 10'd320;
+          missile_coeff_x[2] <= starter_coeff_x;
+          missile_coeff_y[2] <= starter_coeff_y;
         end
       end
 
