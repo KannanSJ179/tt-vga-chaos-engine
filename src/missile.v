@@ -57,6 +57,7 @@ module missile (
       frames_counter    <= 16'd0;
       flying            <= 1'b0;
       reverse_x         <= 1'b0;
+      impact            <= 1'b0;
     end else begin
       if (fire && !flying) begin
         init_x            <= initial_x;
@@ -65,7 +66,7 @@ module missile (
         coeff_x           <= coefficient_x;
         coeff_y           <= coefficient_y;
         frames_counter    <= 16'd0;
-        flying            <= 1'b0;
+        flying            <= 1'b1;
         impact            <= 1'b0;
         reverse_x         <= initial_x > 320 ? 1'b1 : 1'b0;
       end else if (flying) begin
@@ -154,7 +155,6 @@ module missile (
       R      <= 2'b00;
       G      <= 2'b00;
       B      <= 2'b00;
-      impact <= 1'b0;
       stop_request_r   <= 1'b0;
       impact_request_r <= 1'b0;
     end else begin
