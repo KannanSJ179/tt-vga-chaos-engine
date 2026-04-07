@@ -36,7 +36,7 @@ module tt_um_ds_missile_command(
 
   reg [1:0] impacts;
 
-  reg [15:0] explosions;
+  reg [3:0] explosions;
 
   reg [15:0] counter;
   reg crosshair_active;
@@ -47,7 +47,7 @@ module tt_um_ds_missile_command(
   reg [9:0] crosshair_y;
 
   localparam FRAMES_CROSSHAIR_DELAY = 16'h0100;
-  localparam EXPLOSION_COUNT = 8;
+  localparam EXPLOSION_COUNT = 4;
 
   localparam CROSSHAIR_RGB_COLOR = 6'b00_1100;
   localparam FORTRESS_RGB_COLOR = 6'b01_0101;

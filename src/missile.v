@@ -14,7 +14,7 @@ module missile (
     input  wire [1:0] B_next,
     output reg        active,
     output wire       in_flight,
-    output reg       impact,
+    output reg        impact,
     output reg [1:0]  R,
     output reg [1:0]  G,
     output reg [1:0]  B

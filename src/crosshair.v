@@ -69,22 +69,25 @@ module crosshair (
   end
 
   function automatic crosshair_pixel;
-    input [3:0] r;
-    input [3:0] c;
+    input [3:0] row;
+    input [3:0] col;
     begin
-      case (r)
-        4'd0: crosshair_pixel = (10'b00_0000_0011 >> c) & 1'b1;
-        4'd1: crosshair_pixel = (10'b00_0000_0011 >> c) & 1'b1;
-        4'd2: crosshair_pixel = (10'b00_0000_0011 >> c) & 1'b1;
-        4'd3: crosshair_pixel = (10'b00_0000_0011 >> c) & 1'b1;
-        4'd4: crosshair_pixel = (10'b00_0000_0011 >> c) & 1'b1;
-        4'd5: crosshair_pixel = (10'b00_0000_0011 >> c) & 1'b1;
-        4'd6: crosshair_pixel = (10'b00_0000_0011 >> c) & 1'b1;
-        4'd7: crosshair_pixel = (10'b00_0000_0011 >> c) & 1'b1;
-        4'd8: crosshair_pixel = (10'b11_1111_1111 >> c) & 1'b1;
-        4'd9: crosshair_pixel = (10'b11_1111_1111 >> c) & 1'b1;
-        default: crosshair_pixel = 1'b0;
+      reg [9:0] row_bitmap;
+      case (row)
+        4'd0: row_bitmap = 10'b00_0000_0011;
+        4'd1: row_bitmap = 10'b00_0000_0011;
+        4'd2: row_bitmap = 10'b00_0000_0011;
+        4'd3: row_bitmap = 10'b00_0000_0011;
+        4'd4: row_bitmap = 10'b00_0000_0011;
+        4'd5: row_bitmap = 10'b00_0000_0011;
+        4'd6: row_bitmap = 10'b00_0000_0011;
+        4'd7: row_bitmap = 10'b00_0000_0011;
+        4'd8: row_bitmap = 10'b11_1111_1111;
+        4'd9: row_bitmap = 10'b11_1111_1111;
+        default: row_bitmap = 10'b00_0000_0000;
       endcase
+
+      crosshair_pixel = row_bitmap[col];
     end
   endfunction
 
