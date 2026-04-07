@@ -105,6 +105,11 @@ module tt_um_ds_missile_command(
   reg       inp_select_prev;
   reg [1:0] impact_pulses;
 
+  reg [1:0] start_banner_R;
+  reg [1:0] start_banner_G;
+  reg [1:0] start_banner_B;
+  reg start_banner_active;
+
   hvsync_generator hvsync_gen(
     .clk(clk),
     .reset(~rst_n),
@@ -306,6 +311,23 @@ module tt_um_ds_missile_command(
       .B(crosshair_B)
   );
 
+  start_banner start (
+      .rst_n(rst_n),
+      .clk(clk),
+      .frames_clk(vsync),
+      .lines_clk(hsync),
+      .x(pix_x),
+      .y(pix_y),
+      .pos_x(320),
+      .pos_y(240),
+      .RGB_Color(CROSSHAIR_RGB_COLOR),
+      .paint_banner(impacts == 2'b00),
+      .active(start_banner_active),
+      .R(start_banner_R),
+      .G(start_banner_G),
+      .B(start_banner_B)
+  );
+
   fortress f(
       .rst_n(rst_n),
       .clk(clk),
@@ -327,7 +349,7 @@ module tt_um_ds_missile_command(
     G_next = 2'b00;
     B_next = 2'b11;
 
-    if (!video_active || impacts == 2'b00) begin
+    if (!video_active) begin
       R_next = 2'b00;
       G_next = 2'b00;
       B_next = 2'b00;
@@ -358,10 +380,16 @@ module tt_um_ds_missile_command(
       end
 
       // crosshair on top
-      if (crosshair_active) begin
+      if (crosshair_active && impacts > 0) begin
         R_next = crosshair_R;
         G_next = crosshair_G;
         B_next = crosshair_B;
+      end
+
+      if (start_banner_active && impacts == 2'b00) begin
+        R_next = start_banner_R;
+        G_next = start_banner_G;
+        B_next = start_banner_B;
       end
     end
   end
@@ -413,10 +441,12 @@ module tt_um_ds_missile_command(
       missile_impact_prev <= missile_impact;
 
       // Free-running pseudo-random source
-      if (missiles_in_flight + 1'b1 == 2'b00) begin
-        missiles_in_flight <= 2'b01;
-      end else begin
-        missiles_in_flight <= missiles_in_flight + 1'b1;
+      if (impacts > 0) begin
+        if (missiles_in_flight + 1'b1 == 2'b00) begin
+          missiles_in_flight <= 2'b01;
+        end else begin
+          missiles_in_flight <= missiles_in_flight + 1'b1;
+        end
       end
 
       // Track previous all-gone state
