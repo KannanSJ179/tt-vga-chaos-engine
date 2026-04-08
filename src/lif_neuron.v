@@ -11,7 +11,7 @@ module lif_neuron #(
     input  wire spike_in,
     output reg  spike_out
 );
-    reg [3:0] potential;
+    reg [7:0] potential;
 
     always @(posedge clk or negedge rst_n) begin
         if (!rst_n) begin
