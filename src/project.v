@@ -117,20 +117,20 @@ module tt_um_ds_missile_command(
   reg       inp_start_prev;
   reg [1:0] impact_pulses;
 
-  reg [1:0] start_banner_R;
-  reg [1:0] start_banner_G;
-  reg [1:0] start_banner_B;
-  reg       start_banner_active;
+  wire [1:0] start_banner_R;
+  wire [1:0] start_banner_G;
+  wire [1:0] start_banner_B;
+  wire       start_banner_active;
 
-  reg [1:0] game_over_banner_R;
-  reg [1:0] game_over_banner_G;
-  reg [1:0] game_over_banner_B;
-  reg       game_over_banner_active;
+  wire [1:0] game_over_banner_R;
+  wire [1:0] game_over_banner_G;
+  wire [1:0] game_over_banner_B;
+  wire       game_over_banner_active;
 
-  reg [1:0] level_banner_R;
-  reg [1:0] level_banner_G;
-  reg [1:0] level_banner_B;
-  reg       level_banner_active;
+  wire [1:0] level_banner_R;
+  wire [1:0] level_banner_G;
+  wire [1:0] level_banner_B;
+  wire       level_banner_active;
 
   reg       start_game_pending;
   reg       game_over;
@@ -393,7 +393,7 @@ module tt_um_ds_missile_command(
       .pos_y(25),
       .RGB_Color(GAME_OVER_BANNER_RGB_COLOR),
       .level(level),
-      .paint_banner(1),
+      .paint_banner(1'b1),
       .active(level_banner_active),
       .R(level_banner_R),
       .G(level_banner_G),
