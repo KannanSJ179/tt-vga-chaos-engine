@@ -6,7 +6,7 @@ SIM ?= icarus
 FST ?= -fst # Use more efficient FST format
 TOPLEVEL_LANG ?= verilog
 SRC_DIR = $(PWD)/../src
-PROJECT_SOURCES = project.v crosshair.v explossion.v fortress.v gamepad_pmod_decoder.v gamepad_pmod_driver.v gamepad_pmod_single.v hsync_generator.v missile_starter.v missile.v start_banner.v game_over_banner.v
+PROJECT_SOURCES = project.v crosshair.v explossion.v fortress.v gamepad_pmod_decoder.v gamepad_pmod_driver.v gamepad_pmod_single.v hsync_generator.v missile_starter.v missile.v start_banner.v game_over_banner.v level_banner.v
 
 ifneq ($(GATES),yes)
 
@@ -17,7 +17,7 @@ VERILOG_SOURCES += $(addprefix $(SRC_DIR)/,$(PROJECT_SOURCES))
 else
 
 # Gate level simulation:
-SIM_BUILD				= sim_build/gl
+SIM_BUILD		= sim_build/gl
 COMPILE_ARGS    += -DGL_TEST
 COMPILE_ARGS    += -DFUNCTIONAL
 COMPILE_ARGS    += -DUSE_POWER_PINS

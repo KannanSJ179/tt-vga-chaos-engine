@@ -34,11 +34,14 @@ module tt_um_ds_missile_command(
 
   wire _unused_ok = &{ena, ui_in, uio_in};
 
+  reg [3:0] level;
+
   reg [1:0] impacts;
 
   reg [3:0] explosions;
 
   reg [15:0] counter;
+  reg [4:0] level_launches;
   reg crosshair_active;
   reg [1:0] crosshair_R;
   reg [1:0] crosshair_G;
@@ -46,6 +49,13 @@ module tt_um_ds_missile_command(
   reg [9:0] crosshair_x;
   reg [9:0] crosshair_y;
 
+  reg [7:0] missile_lines_delay;
+  reg [7:0] crosshair_lines_delay;
+  reg [7:0] explossion_lines_delay;
+
+  localparam MISSILES_PER_LEVEL = 20;
+  localparam LEVEL_DELAY_STEP = 24;
+  localparam CROSSHAIR_FRAMES_DELAY = 16'h0100;
   localparam FRAMES_CROSSHAIR_DELAY = 16'h0100;
   localparam EXPLOSION_COUNT = 4;
 
@@ -116,6 +126,11 @@ module tt_um_ds_missile_command(
   reg [1:0] game_over_banner_G;
   reg [1:0] game_over_banner_B;
   reg       game_over_banner_active;
+
+  reg [1:0] level_banner_R;
+  reg [1:0] level_banner_G;
+  reg [1:0] level_banner_B;
+  reg       level_banner_active;
 
   reg       start_game_pending;
   reg       game_over;
@@ -253,6 +268,10 @@ module tt_um_ds_missile_command(
     .R_next(R_next),
     .G_next(G_next),
     .B_next(B_next),
+    .RGBColor(MISSILE_RGB_COLOR),
+    .Explosion_RGBColor(EXPLOSSION_RGB_COLOR),
+    .Fortress_RGBColor(FORTRESS_RGB_COLOR),
+    .Lines_Delay(5*missile_lines_delay),
     .active(missile_active[0]),
     .in_flight(missile_flying[0]),
     .impact(missile_impact[0]),
@@ -275,6 +294,10 @@ module tt_um_ds_missile_command(
     .R_next(R_next),
     .G_next(G_next),
     .B_next(B_next),
+    .RGBColor(MISSILE_RGB_COLOR),
+    .Explosion_RGBColor(EXPLOSSION_RGB_COLOR),
+    .Fortress_RGBColor(FORTRESS_RGB_COLOR),
+    .Lines_Delay(5*missile_lines_delay),
     .active(missile_active[1]),
     .in_flight(missile_flying[1]),
     .impact(missile_impact[1]),
@@ -297,6 +320,10 @@ module tt_um_ds_missile_command(
     .R_next(R_next),
     .G_next(G_next),
     .B_next(B_next),
+    .RGBColor(MISSILE_RGB_COLOR),
+    .Explosion_RGBColor(EXPLOSSION_RGB_COLOR),
+    .Fortress_RGBColor(FORTRESS_RGB_COLOR),
+    .Lines_Delay(5*missile_lines_delay),
     .active(missile_active[2]),
     .in_flight(missile_flying[2]),
     .impact(missile_impact[2]),
@@ -354,6 +381,25 @@ module tt_um_ds_missile_command(
       .G(game_over_banner_G),
       .B(game_over_banner_B)
   );
+
+  level_banner level_indicator (
+      .rst_n(rst_n),
+      .clk(clk),
+      .frames_clk(vsync),
+      .lines_clk(hsync),
+      .x(pix_x),
+      .y(pix_y),
+      .pos_x(70),
+      .pos_y(25),
+      .RGB_Color(GAME_OVER_BANNER_RGB_COLOR),
+      .level(level),
+      .paint_banner(1),
+      .active(level_banner_active),
+      .R(level_banner_R),
+      .G(level_banner_G),
+      .B(level_banner_B)
+  );
+
 
   fortress f(
       .rst_n(rst_n),
@@ -424,6 +470,13 @@ module tt_um_ds_missile_command(
         B_next = fortress_B;
       end
 
+      // Level indicator
+      if (level_banner_active) begin
+        R_next = level_banner_R;
+        G_next = level_banner_G;
+        B_next = level_banner_B;
+      end
+
       // crosshair on top
       if (crosshair_active) begin
         R_next = crosshair_R;
@@ -439,24 +492,28 @@ module tt_um_ds_missile_command(
 
   always @(posedge hsync) begin
     if (!rst_n) begin
-      inp_a_prev          <= 1'b0;
-      fire_pulse          <= 1'b0;
+      inp_a_prev            <= 1'b0;
+      fire_pulse            <= 1'b0;
 
-      missile_fire        <= 3'b000;
-      missile_fire_pulse  <= 4'd0;
-      missiles_in_flight  <= 2'd1;
-      missiles_gone_prev  <= 1'b0;
+      missile_fire          <= 3'b000;
+      missile_fire_pulse    <= 4'd0;
+      missiles_in_flight    <= 2'd1;
+      missiles_gone_prev    <= 1'b0;
 
-      missile_impact_prev <= 3'b000;
-      inp_start_prev      <= 1'b0;
+      missile_impact_prev   <= 3'b000;
+      inp_start_prev        <= 1'b0;
 
-      counter             <= 16'd0;
-      crosshair_x         <= 10'd320;
-      crosshair_y         <= 10'd240;
-      impacts             <= 2'b00;
+      counter               <= 16'd0;
+      crosshair_x           <= 10'd320;
+      crosshair_y           <= 10'd240;
+      impacts               <= 2'b00;
 
-      start_game_pending  <= 1'b0;
-      game_over           <= 1'b0;
+      start_game_pending    <= 1'b0;
+      game_over             <= 1'b0;
+      missile_lines_delay   <= 8'b1111_1111;
+      level_launches        <= 5'b0_0000;
+
+      level                 <= 4'b0000;
     end else begin
       // edge detectors
       impact_pulses =
@@ -514,6 +571,14 @@ module tt_um_ds_missile_command(
 
       // Launch only when game is active
       if ((impacts > 0) && (start_game_pending || (missiles_gone && !missiles_gone_prev))) begin
+        if (level_launches + missiles_in_flight >= MISSILES_PER_LEVEL) begin
+          level_launches <= 0;
+          missile_lines_delay <= missile_lines_delay - LEVEL_DELAY_STEP;
+          impacts <= 0;
+        end else begin
+          level_launches <= level_launches + missiles_in_flight;
+        end
+
         missile_fire_pulse <= 4'b1111;
         missile_fire       <= 3'b000;
         start_game_pending <= 1'b0;

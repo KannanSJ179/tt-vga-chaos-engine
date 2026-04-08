@@ -26,6 +26,7 @@ project:
     - "gamepad_pmod_driver.v"
     - "gamepad_pmod_single.v"
     - "hsync_generator.v"
+    - "level_banner.v"
     - "missile_starter.v"
     - "missile.v"
     - "start_banner.v"
