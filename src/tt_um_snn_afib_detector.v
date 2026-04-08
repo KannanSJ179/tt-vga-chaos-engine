@@ -1,5 +1,24 @@
 `default_nettype none
 
+// tt_um_snn_afib_detector — Tiny Tapeout top-level
+//
+// Input  pins  (ui_in):
+//   [0] r_peak   — ECG R-peak pulse (1 clock wide)
+//   [1] w_load   — weight load strobe (active high during serial load)
+//   [2] w_data   — serial weight data (MSB first)
+//   [3] w_clk    — serial weight clock
+//
+// Output pins (uo_out):
+//   [0] afib_flag       — AFib detected (2-of-3 window majority vote)
+//   [1] out_valid       — output valid strobe (asserts for 1 cycle at slow-window close)
+//   [2] any_spike       — at least one reservoir neuron fired this beat
+//   [3] fsm_state[0]    — readout FSM state bit 0
+//   [4] fsm_state[1]    — readout FSM state bit 1
+//   [7:5] confidence    — 3-bit AFib confidence (from fast-window accumulator snapshot)
+//
+// Bidirectional pins (uio):
+//   [0] asystole_flag   — OUTPUT: bradycardia / asystole detected (>1.6 s since last R-peak)
+//   [7:1]               — unused, driven low, direction = input
 
 module tt_um_snn_afib_detector (
     input  wire [7:0] ui_in,

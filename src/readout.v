@@ -1,6 +1,31 @@
 `default_nettype none
 
-
+// readout.v  — triple-window SNN readout with 2-of-3 majority AFib voting
+//
+// Three temporal integration windows share the beat_fast counter:
+//
+//   ULTRA window  (4 beats):  closes when beat_fast == 3 and when beat_fast == 7
+//                              i.e. twice per 8-beat fast window.
+//                              Catches paroxysmal AFib: brief irregular bursts
+//                              that self-terminate before the 8-beat window closes.
+//
+//   FAST  window  (8 beats):  existing window, unchanged threshold.
+//                              Detects sustained AFib episodes.
+//
+//   SLOW  window  (16 beats): existing window, unchanged threshold.
+//                              Confirms AFib persistence across two fast windows.
+//
+// AFib voting — 2-of-3 majority:
+//   afib_flag = (afib_ultra & afib_fast) | (afib_fast & afib_slow) | (afib_ultra & afib_slow)
+//
+//   Rationale: requiring all 3 would miss paroxysmal AFib (clears before slow
+//   window closes).  Any 2 agreeing is sufficient clinical evidence.
+//   The slow window provides the persistence check; the ultra window provides
+//   the early-detection sensitivity.
+//
+// The ULTRA accumulator reuses the cycle_fast wire (already computed) and the
+// beat_fast counter — no new counter register is needed.  This saves 3 FFs
+// (~3 cells) vs a separate beat_ultra counter.
 
 module readout (
     input  wire        clk,
@@ -23,6 +48,12 @@ module readout (
     localparam FAST_WINDOW  = 4'd8;             // 8 beats
     localparam SLOW_WINDOW  = 5'd16;            // 16 beats
 
+    // Thresholds (signed): accumulator must EXCEED this to flag AFib.
+    // cycle_fast sums weighted spikes per beat.  In AFib the delta neurons
+    // fire positively; in sinus the interval neuron n3 fires with weight -3,
+    // pulling the sum negative.
+    // ULTRA: 4-beat window → half as many beats as FAST.  Threshold stays at
+    // -1: even a small positive sum over 4 beats is a strong AFib signal.
     localparam signed [8:0]  ULTRA_THRESH = -9'sd1;
     localparam signed [8:0]  FAST_THRESH  = -9'sd1;
     localparam signed [9:0]  SLOW_THRESH  = -10'sd2;
@@ -84,12 +115,11 @@ module readout (
     reg signed [8:0]  accum_ultra;
     reg               afib_ultra;
 
-
     // FAST (8-beat) — unchanged from original
     reg signed [8:0]  accum_fast;
     reg [3:0]         beat_fast;
     reg               afib_fast;
-    reg signed [8:0]  accum_fast_snap;
+    reg signed [6:0]  accum_fast_snap;
 
     // SLOW (16-beat) — unchanged from original
     reg signed [9:0]  accum_slow;
@@ -97,17 +127,18 @@ module readout (
     reg               afib_slow;
 
     // ── Ultra-window closes at beat 3 and beat 7 (every 4 beats) ─────────────
+    // beat_fast runs 0..7; the 4-beat boundary is beat_fast == ULTRA_WINDOW-1 (3)
+    // and beat_fast == FAST_WINDOW-1 (7).  We detect the mid-point separately.
     wire ultra_close = (beat_fast == ULTRA_WINDOW - 1) |
                        (beat_fast == FAST_WINDOW  - 1);
 
-    // ── Live confidence from fast-window snapshot ─────────────────────────────
+    // ── Live confidence — 3 levels, 2 comparators ────────────────────────────
+    // 111 = AFib (above threshold)
+    // 000 = clearly normal (8+ below threshold)
+    // 011 = borderline
     assign confidence =
-        (accum_fast_snap >= FAST_THRESH + 9'sd8) ? 3'b111 :
-        (accum_fast_snap >= FAST_THRESH + 9'sd4) ? 3'b110 :
-        (accum_fast_snap >= FAST_THRESH)          ? 3'b101 :
-        (accum_fast_snap <= FAST_THRESH - 9'sd8) ? 3'b000 :
-        (accum_fast_snap <= FAST_THRESH - 9'sd4) ? 3'b001 : 3'b010;
-
+       (accum_fast_snap > -7'sd1)  ? 3'b111 :
+       (accum_fast_snap < -7'sd9)  ? 3'b000 : 3'b011;
     // ── Main FSM ──────────────────────────────────────────────────────────────
     always @(posedge clk or negedge rst_n) begin
         if (!rst_n) begin
@@ -117,7 +148,7 @@ module readout (
             accum_ultra      <= 9'sd0;
             accum_fast       <= 9'sd0;
             accum_slow       <= 10'sd0;
-            accum_fast_snap  <= 9'sd0;
+            accum_fast_snap  <= 7'sd0;
             beat_fast        <= 4'd0;
             beat_slow        <= 5'd0;
             afib_ultra       <= 1'b0;
@@ -164,7 +195,12 @@ module readout (
                         beat_slow   <= beat_slow   + 5'd1;
 
                         // ── ULTRA window closes every 4 beats ─────────────────
-                      
+                        // Fires at beat_fast == 3 (mid-point) and
+                        // beat_fast == 7 (coincides with fast-window close).
+                        // On close: latch decision, reset accumulator.
+                        // NOTE: when beat_fast == 7, both ultra AND fast close
+                        //       on the same cycle — both are evaluated below
+                        //       before their accumulators are reset.
                         if (ultra_close) begin
                             afib_ultra  <= (accum_ultra > ULTRA_THRESH);
                             accum_ultra <= 9'sd0;
@@ -173,7 +209,7 @@ module readout (
                         // ── FAST window closes every 8 beats ──────────────────
                         if (beat_fast == FAST_WINDOW - 1) begin
                             afib_fast       <= (accum_fast > FAST_THRESH);
-                            accum_fast_snap <= accum_fast;
+                            accum_fast_snap <= accum_fast[6:0];
                             accum_fast      <= 9'sd0;
                             beat_fast       <= 4'd0;
                         end
@@ -188,7 +224,19 @@ module readout (
                     end
                 end
 
-               
+                // ── OUTPUT: compute 2-of-3 majority vote and latch outputs ────
+                //
+                // 2-of-3 majority:
+                //   afib_flag = (ultra & fast) | (fast & slow) | (ultra & slow)
+                //
+                // This is correct majority logic: the flag asserts if and only
+                // if at least 2 of the 3 windows independently agree on AFib.
+                //
+                // Clinical meaning of each pairing:
+                //   ultra & fast  → two short-scale windows agree: likely paroxysmal
+                //   fast & slow   → sustained episode confirmed across 24 beats
+                //   ultra & slow  → episodic pattern persisting over 16 beats
+                //                   (even if the 8-beat mid-window missed one episode)
                 OUTPUT: begin
                     confidence_latch <= confidence;
                     afib_flag   <= (afib_ultra & afib_fast)  |

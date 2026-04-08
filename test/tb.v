@@ -1,4 +1,3 @@
-`default_nettype none
 `timescale 1ns/1ps
 
 module tb;
@@ -16,6 +15,7 @@ module tb;
     `define FSM_STATE    uo_out[4:3]
     `define CONFIDENCE   uo_out[7:5]
     `define ASYSTOLE     uio_out[0]
+     localparam [32:0] AFIB_WEIGHTS = 33'h088051A08;
 
     tt_um_snn_afib_detector dut (
         .ui_in(ui_in), .uo_out(uo_out),
@@ -81,7 +81,7 @@ module tb;
     endtask
 
     // Trained weights: n10=+2 n9=+1 n8=0 n7=0 n6=+1 n5=+2 n4=+1 n3=-3 n2=0 n1=+1 n0=0
-    localparam [32:0] AFIB_WEIGHTS = 33'h088051A08;
+   
 
     integer pass_count, fail_count;
 
