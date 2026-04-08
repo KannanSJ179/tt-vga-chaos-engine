@@ -1,3 +1,5 @@
+`default_nettype none
+
 module spike_encoder (
     input  wire       clk,
     input  wire       rst_n,
@@ -26,4 +28,5 @@ module spike_encoder (
             end
         end
     end
+
 endmodule
