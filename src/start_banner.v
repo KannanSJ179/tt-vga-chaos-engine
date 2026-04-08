@@ -18,8 +18,8 @@ module start_banner (
   localparam [9:0] SPRITE_WIDTH  = 10'd64;
   localparam [9:0] SPRITE_HEIGHT = 10'd16;
 
-  localparam [3:0] PIXEL_WIDTH   = 4'd5;
-  localparam [3:0] PIXEL_HEIGHT  = 4'd3;
+  localparam [3:0] PIXEL_WIDTH_SHIFT  = 4'd2;
+  localparam [3:0] PIXEL_HEIGHT_SHIFT = 4'd1;
 
   reg [9:0] left_x;
   reg [9:0] top_y;
@@ -40,17 +40,18 @@ module start_banner (
       G      <= 2'b00;
       B      <= 2'b00;
 
-      left_x = pos_x - ((SPRITE_WIDTH  * PIXEL_WIDTH)  >> 1);
-      top_y  = pos_y - ((SPRITE_HEIGHT * PIXEL_HEIGHT) >> 1);
+      left_x = pos_x - ((SPRITE_WIDTH  << PIXEL_WIDTH_SHIFT)  >> 1);
+      top_y  = pos_y - ((SPRITE_HEIGHT << PIXEL_HEIGHT_SHIFT) >> 1);
 
-      if ((x >= left_x) && (x < left_x + SPRITE_WIDTH * PIXEL_WIDTH) &&
-          (y >= top_y)  && (y < top_y  + SPRITE_HEIGHT * PIXEL_HEIGHT) && paint_banner) begin
+      if ((x >= left_x) && (x < (left_x + (SPRITE_WIDTH  << PIXEL_WIDTH_SHIFT))) &&
+          (y >= top_y)  && (y < (top_y  + (SPRITE_HEIGHT << PIXEL_HEIGHT_SHIFT))) &&
+          paint_banner) begin
 
         rel_x = x - left_x;
         rel_y = y - top_y;
 
-        bmp_col = rel_x / PIXEL_WIDTH;
-        bmp_row = rel_y / PIXEL_HEIGHT;
+        bmp_col = rel_x >> PIXEL_WIDTH_SHIFT;
+        bmp_row = rel_y >> PIXEL_HEIGHT_SHIFT;
 
         if (start_banner_pixel(bmp_row, bmp_col)) begin
           active <= 1'b1;
@@ -84,8 +85,7 @@ module start_banner (
         5'd13: row_bitmap = 64'b0000_0000_0000_0000_0000_0000_0000_0000_0000_0000_0000_0000_0000_0000_0000_0000;
         5'd14: row_bitmap = 64'b0000_0000_0000_0000_0000_0000_0000_0000_0000_0000_0000_0000_0000_0000_0000_0000;
         5'd15: row_bitmap = 64'b0000_0000_0000_0000_0000_0000_0000_0000_0000_0000_0000_0000_0000_0000_0000_0000;
-
-        default: row_bitmap = 64'b0000_0000_0000_0000_0000_0000_0000_0000_0000_0000_0000_0000_0000_0000_0000_0000;
+        default: row_bitmap = 64'b0;
       endcase
 
       start_banner_pixel = row_bitmap[63 - col];
