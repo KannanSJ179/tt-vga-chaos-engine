@@ -574,7 +574,13 @@ module tt_um_ds_missile_command(
         if (level_launches + missiles_in_flight >= MISSILES_PER_LEVEL) begin
           level_launches <= 0;
           missile_lines_delay <= missile_lines_delay - LEVEL_DELAY_STEP;
-          impacts <= 0;
+          impacts <= 2'b11;
+          if (level + 1'b1 >= 9) begin
+            level <= 0;
+            missile_lines_delay <= 8'b1111_1111;
+          end else begin
+            level <= level + 1'b1;
+          end
         end else begin
           level_launches <= level_launches + missiles_in_flight;
         end
