@@ -1,10 +1,5 @@
 `default_nettype none
 
-// ui_in[7:4] and uio_in are unused by design — TT pin allocation requires
-// the full 8-bit ports to be present even if only a subset are connected.
-// confidence is routed internally through confidence_latch to uo_out[7:5].
-/* verilator lint_off UNUSEDSIGNAL */
-
 module tt_um_snn_afib_detector (
     input  wire [7:0] ui_in,
     output wire [7:0] uo_out,
@@ -31,7 +26,7 @@ module tt_um_snn_afib_detector (
     wire [3:0]  spike_interval;
     wire [3:0]  spike_delta;
     wire        spike_valid;
-    wire [7:0]  neuron_spikes;
+    wire [10:0] neuron_spikes;
     wire        any_spike;
     wire        afib_flag;
     wire        out_valid;
@@ -95,7 +90,7 @@ module tt_um_snn_afib_detector (
     assign uo_out[3]   = fsm_state[0];
     assign uo_out[4]   = fsm_state[1];
     assign uo_out[7:5] = confidence_latch;
+
     assign uio_out[0]  = asystole_flag;   // bradycardia / asystole output
 
 endmodule
-/* verilator lint_on UNUSEDSIGNAL */

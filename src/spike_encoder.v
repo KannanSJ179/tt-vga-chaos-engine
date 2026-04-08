@@ -1,6 +1,3 @@
-`default_nettype none
-/* verilator lint_off UNUSEDSIGNAL */
-
 module spike_encoder (
     input  wire       clk,
     input  wire       rst_n,
@@ -29,6 +26,4 @@ module spike_encoder (
             end
         end
     end
-
 endmodule
-/* verilator lint_on UNUSEDSIGNAL */
