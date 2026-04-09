@@ -61,9 +61,6 @@ module missile (
       flying            <= 1'b0;
       reverse_x         <= 1'b0;
       impact            <= 1'b0;
-      R                 <= 2'b00;
-      G                 <= 2'b00;
-      B                 <= 2'b00;
     end else begin
       if (fire && !flying) begin
         init_x            <= initial_x;
