@@ -425,33 +425,7 @@ fires exactly once per beat at the R-peak.
 ### Real-world deployment path
 ![Real-world deployment path](./RWD.jpeg)
 
-```
-Patient
-  │ electrodes
-  ▼
-AD8232 ECG front-end
-  │ analog ECG waveform
-  ▼
-LM393 comparator (threshold ~0.5V)
-  │ digital R-peak pulse (3.3V CMOS)
-  │
-  ├──────────────────────────────────────┐
-  │                                      │
-  ▼                                      │
-ui_in[0] → [SNN AFib Detector]           │
-           959 cells, SKY130A            │
-           Always-on, event-driven       │
-           ↓           ↓                 │
-        afib_flag   asystole_flag        │
-           │             │               │
-           ▼             ▼               │
-        nRF52 BLE SoC (deep sleep)       │
-        Wakes ONLY on flag assertion     │
-           │                             │
-           ▼                         RP2040 clock: 10 kHz (required)
-        Phone alert                  1 tick=100µs; 700ms beat=7,000 ticks
-        (BLE notification)           16-bit counter fits; bins calibrated here
-```
+
 
 ### Honest limitations
 
