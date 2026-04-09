@@ -82,7 +82,7 @@ from isolated ectopic beats, which are common and harmless.
 `afib_flag` goes HIGH. A 3-bit confidence score indicates how strongly both windows
 agreed. The system resets and starts watching the next 16 beats.
 
-![Signal Pipeline](./SP.jpeg)
+<img src="./SP.jpeg" alt="Signal Pipeline" width="600"/>
 
 #### Why the memory matters — one bit that changes everything
 
@@ -463,11 +463,11 @@ fires exactly once per beat at the R-peak.
 - Right Leg (RL) electrode — lower right abdomen (ground/reference)
 
 ### Real-world deployment path
-![Real-world deployment path](./RWD.jpeg)
+<img src="./RWD.jpeg" alt="Real-world deployment path" width="600"/>
 
 
 ### Image of functional behaviour with respect to ECG data
-![AI](./AI.jpeg)
+<img src="./AI.jpeg" alt="AI" width="600"/>
 - The top plot shows the time between heartbeats
 - The second plot shows the spiking of the LIF neurons in the reservoir
 - The third plot is the plot of the weighted sum of spikes that are displayed on the plot above
