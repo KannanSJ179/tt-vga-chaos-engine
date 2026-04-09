@@ -37,7 +37,7 @@ module explosion (
   // --------------------------------------------------------------------------
   // Explosion state / animation timing
   // --------------------------------------------------------------------------
-  always @(posedge lines_clk) begin
+  always @(posedge lines_clk or negedge rst_n) begin
     if (!rst_n) begin
       frames_counter <= 16'd0;
       counter        <= 4'd0;
@@ -46,6 +46,9 @@ module explosion (
       exploding      <= 1'b0;
       my_x           <= 10'd0;
       my_y           <= 10'd0;
+      R              <= 2'b00;
+      G              <= 2'b00;
+      B              <= 2'b00;
     end else begin
       exploding <= explode;
 

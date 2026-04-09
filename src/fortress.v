@@ -19,6 +19,10 @@ module fortress (
 
   always @(posedge clk) begin
     if (!rst_n) begin
+      active <= 1'b0;
+      R      <= 2'b00;
+      G      <= 2'b00;
+      B      <= 2'b00;
     end else begin
       if (remaining_hits > 0) begin
         if (x >= SCREEN_MID_WIDTH - 3*FORTRESS_BLOCK_MID_WIDTH && x <= SCREEN_MID_WIDTH + 3*FORTRESS_BLOCK_MID_WIDTH) begin

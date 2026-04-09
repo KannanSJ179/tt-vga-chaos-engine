@@ -490,7 +490,7 @@ module tt_um_ds_missile_command(
   assign G = G_next;
   assign B = B_next;
 
-  always @(posedge hsync) begin
+  always @(posedge hsync or negedge rst_n) begin
     if (!rst_n) begin
       inp_a_prev            <= 1'b0;
       fire_pulse            <= 1'b0;
@@ -514,6 +514,10 @@ module tt_um_ds_missile_command(
       level_launches        <= 5'b0_0000;
 
       level                 <= 4'b0000;
+
+      R_next                <= 2'b00;
+      G_next                <= 2'b00;
+      B_next                <= 2'b00;
     end else begin
       // edge detectors
       impact_pulses =
