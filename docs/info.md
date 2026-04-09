@@ -468,6 +468,7 @@ fires exactly once per beat at the R-peak.
 
 ### Image of functional behaviour with respect to ECG data
 <img src="./AI.jpeg" alt="AI" width="600"/>
+
 - The top plot shows the time between heartbeats
 - The second plot shows the spiking of the LIF neurons in the reservoir
 - The third plot is the plot of the weighted sum of spikes that are displayed on the plot above
