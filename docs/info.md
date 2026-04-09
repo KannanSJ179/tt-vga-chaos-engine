@@ -61,6 +61,9 @@ ui_in[0] ─── r_peak pulse (1 clock wide, once per beat)
         │  tick_count[15:9]│  Compresses to 6-bit rr_interval (64 bins).
         │  |delta|        │  Computes |RR[n] − RR[n-1]| = rr_delta ≈ RMSSD.
         │  tick[15|14]    │  Bit-select → asystole_flag if gap > 1.64 s.
+        │                 │  At 10 kHz: 1 tick = 100 µs; counter fits real
+        │                 │  heartbeat intervals (700ms = 7,000 ticks, well
+        │                 │  within 16-bit max of 65,535 ticks = 6.55 s).
         └────────┬────────┘
                  │ rr_interval[5:0], rr_delta[5:0]
                  ▼
@@ -148,7 +151,7 @@ accumulator score. **This is the classification mechanism.**
 | Dual-window AND vote | ESC 2020 AFib guidelines require **sustained** irregularity. A single ectopic beat triggers the fast window but not the slow — the AND prevents false alarms. |
 | Fast window (8 beats ≈ 5.6 s at 86 BPM) | Detects acute AFib onset and sustained episodes |
 | Slow window (16 beats ≈ 11.2 s) | Confirms pattern persistence — matches clinical "sustained" criterion |
-| Asystole at ~37 BPM (tick_count[14]) | AHA defines symptomatic bradycardia as HR < 40 BPM. Bit 14 at 10 MHz = 1.64 s ≈ 37 BPM — no adder needed. |
+| Asystole at ~37 BPM (tick_count[14]) | AHA defines symptomatic bradycardia as HR < 40 BPM. At 10 kHz (demo board clock), bit 14 of the 16-bit tick counter asserts after 2¹⁴ = 16,384 ticks × 100 µs = 1.6384 s ≈ 37 BPM — detected with a single OR gate, no adder. |
 | Inverted interval encoding | Faster rates → more spikes → stronger excitation. AFib tends toward elevated mean HR. |
 | n3 weight = −3 (inhibitory) | n3 encodes fast rate. Inhibitory weight suppresses AFib score during fast-but-regular rhythm (e.g. sinus tachycardia). Prevents false positives. |
 
@@ -215,8 +218,26 @@ accumulator score. **This is the classification mechanism.**
 
 ### Step 1 — Set clock to 10 kHz
 
-**This is the most important step.** At the default 10 MHz clock, the RR counter
-overflows on every heartbeat. You must set the RP2040 clock output to **10 kHz**.
+**This is the most important step and the most commonly misunderstood.**
+
+The chip's `clk` input must be driven at **10 kHz** (1 tick = 100 µs) on the demo board.
+
+**Why 10 kHz and not higher?**
+
+The `rr_features` module uses a **16-bit tick counter** (`tick_count[15:0]`) to measure the gap between heartbeats. This counter can hold a maximum of 65,535 ticks = **6.55 seconds** before saturating. At 10 kHz:
+
+| Heart rate | Interval | Tick count | Fits 16-bit? |
+|---|---|---|---|
+| 250 BPM (max tachycardia) | 240 ms | 2,400 ticks | ✓ |
+| 86 BPM (normal resting) | 700 ms | 7,000 ticks | ✓ |
+| 37 BPM (asystole threshold) | 1,638 ms | 16,384 ticks (bit 14) | ✓ |
+| 9 BPM (near-asystole) | 6,550 ms | 65,500 ticks | ✓ |
+
+At **10 MHz** a normal 700 ms beat = **7,000,000 ticks** — overflows 16-bit on every heartbeat. The testbench runs at 10 MHz with artificially compressed inter-beat gaps (7,000 ticks = 700 µs simulation time, not 700 ms real time) only to keep simulation fast. The silicon must run at 10 kHz.
+
+The **asystole threshold** is `tick_count[15] | tick_count[14]` (hardcoded bit-select in RTL — no comparator). At 10 kHz, bit 14 asserts at 16,384 ticks = **1.6384 s ≈ 37 BPM**, matching the AHA bradycardia limit exactly.
+
+The **RR interval compression** is `tick_count[15:9]` (right-shift 9). At 10 kHz, a 700 ms beat → 7,000 ticks → `rr_interval` = 7000 >> 9 = **13** (out of 63 bins). At 10 MHz the same beat gives 7,000,000 >> 9 = 13,671 — clamps to 63 and loses all discrimination.
 
 Using TT Commander:
 ```
@@ -490,9 +511,9 @@ ui_in[0] → [SNN AFib Detector]          │
         nRF52 BLE SoC (deep sleep)       │
         Wakes ONLY on flag assertion     │
            │                             │
-           ▼                         RP2040 clock: 10 kHz
-        Phone alert                  Weights loaded once at boot
-        (BLE notification)           Power: < 1 mW always-on
+           ▼                         RP2040 clock: 10 kHz (required)
+        Phone alert                  1 tick=100µs; 700ms beat=7,000 ticks
+        (BLE notification)           16-bit counter fits; bins calibrated here
 ```
 
 ### Honest limitations
@@ -501,8 +522,7 @@ ui_in[0] → [SNN AFib Detector]          │
   of PhysioNet MIT-BIH data. Not validated in a clinical study or on real silicon.
 - **Single-lead timing only.** No waveform morphology. Cannot distinguish PVC,
   SVT, or flutter from AFib — only rhythm irregularity and rate.
-- **10 kHz clock for demo board.** Weight vector `0x051A08` was optimised for
-  10 kHz operation. At other frequencies, interval bins shift proportionally.
+- **10 kHz system clock on the demo board.** The RP2040 on the TT demo board must drive `clk` at **10 kHz** (1 tick = 100 µs). At this frequency a real 700 ms heartbeat interval = 7,000 ticks — well within the 16-bit counter range (max 65,535 ticks = 6.55 s). At 10 MHz the counter would overflow on every beat (700 ms = 7,000,000 ticks >> 65,535). The testbench runs at 10 MHz with compressed inter-beat gaps (7,000 ticks = 700 µs in sim, not 700 ms in real time) purely to keep simulation fast. The asystole threshold (bit 14 = 16,384 ticks = 1.64 s) and all RR interval bins are **calibrated for the 10 kHz demo clock**. Weight vector `0x051A08` was optimised at this clock. At other frequencies all interval bins shift proportionally and the weights must be retrained.
 - **Weight retraining for real deployment.** The default weights were derived
   analytically from synthetic RR distributions. For real patients, retrain
   the 8 readout weights on MIT-BIH PhysioNet data and reload via the serial
