@@ -423,6 +423,7 @@ fires exactly once per beat at the R-peak.
 - Right Leg (RL) electrode — lower right abdomen (ground/reference)
 
 ### Real-world deployment path
+![Real-world deployment path](./RWD.jpeg)
 
 ```
 Patient
