@@ -466,6 +466,12 @@ fires exactly once per beat at the R-peak.
 ![Real-world deployment path](./RWD.jpeg)
 
 
+Image of functional behaviour with respect to ECG data
+The top plot shows the time between heartbeats
+The second plot shows the spiking of the LIF neurons in the reservoir
+The third plot is the plot of the weighted sum of spikes that are displayed on the plot above
+The final plot detects the AFib flag
+
 
 ### Future work
 
