@@ -1,6 +1,6 @@
 module missile_starter(
-  input wire rst_n,
-  input wire clk,
+  input wire        rst_n,
+  input wire        clk,
   output wire [9:0] start_x,
   output wire [3:0] coefficient_x,
   output wire [3:0] coefficient_y

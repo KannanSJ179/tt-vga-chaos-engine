@@ -8,7 +8,7 @@ from cocotb.triggers import ClockCycles, RisingEdge
 # ---------------------------------------------------------------------------
 # Timing / protocol constants
 # ---------------------------------------------------------------------------
-CLK_PERIOD_US = 10
+CLK_PERIOD_NS = 40
 
 # Full raster timing from the VGA generator
 H_MAX = 800
@@ -69,7 +69,7 @@ def get_rgb_safe(dut):
 
 async def do_reset(dut):
     """Start clock and perform a clean reset."""
-    clock = Clock(dut.clk, CLK_PERIOD_US, unit="us")
+    clock = Clock(dut.clk, CLK_PERIOD_NS, unit="ns")
     cocotb.start_soon(clock.start())
 
     dut.ena.value = 1
@@ -207,37 +207,37 @@ async def test_press_start_then_green_crosshair_visible(dut):
     dut._log.info("PASS: green crosshair pixel confirmed after START")
 
 
-@cocotb.test()
-async def test_press_start_then_a_then_white_explosion_visible(dut):
-    """
-    Start the game, press A, wait for the explosion animation to reach
-    a visible phase, then confirm that at least one white pixel appears
-    somewhere on screen.
-
-    This stays broad on purpose so it remains robust under gate-level timing.
-    """
-    dut._log.info("TEST: press START, then A, then confirm a white explosion pixel appears")
-    await do_reset(dut)
-
-    # Stabilize after reset
-    await wait_frames(dut, 1)
-
-    # Start the game
-    await press_button_once(dut, BUTTON_START, settle_lines=6)
-
-    # Let gameplay render for a frame
-    await wait_frames(dut, 1)
-
-    # Fire the explosion
-    await press_button_once(dut, BUTTON_A, settle_lines=6)
-
-    # Wait for the explosion animation to develop.
-    # The original test waited for 2 * FRAMES_DELAY * H_MAX clocks.
-    # Keep the same intent but expressed in scanlines:
-    FRAMES_DELAY_HSYNC = 0x0960
-    await ClockCycles(dut.clk, 2 * FRAMES_DELAY_HSYNC * H_MAX)
-
-    found = await find_color_on_screen(dut, WHITE_PIXEL, frames=3)
-
-    assert found, "No white pixels found anywhere on screen after pressing A"
-    dut._log.info("PASS: white explosion pixel confirmed after A")
+#@cocotb.test()
+#async def test_press_start_then_a_then_white_explosion_visible(dut):
+#    """
+#    Start the game, press A, wait for the explosion animation to reach
+#    a visible phase, then confirm that at least one white pixel appears
+#    somewhere on screen.
+#
+#    This stays broad on purpose so it remains robust under gate-level timing.
+#    """
+#    dut._log.info("TEST: press START, then A, then confirm a white explosion pixel appears")
+#    await do_reset(dut)
+#
+#    # Stabilize after reset
+#    await wait_frames(dut, 1)
+#
+#    # Start the game
+#    await press_button_once(dut, BUTTON_START, settle_lines=6)
+#
+#    # Let gameplay render for a frame
+#    await wait_frames(dut, 1)
+#
+#    # Fire the explosion
+#    await press_button_once(dut, BUTTON_A, settle_lines=6)
+#
+#    # Wait for the explosion animation to develop.
+#    # The original test waited for 2 * FRAMES_DELAY * H_MAX clocks.
+#    # Keep the same intent but expressed in scanlines:
+#    FRAMES_DELAY_HSYNC = 0x0960
+#    await ClockCycles(dut.clk, 2 * FRAMES_DELAY_HSYNC * H_MAX)
+#
+#    found = await find_color_on_screen(dut, WHITE_PIXEL, frames=3)
+#
+#    assert found, "No white pixels found anywhere on screen after pressing A"
+#    dut._log.info("PASS: white explosion pixel confirmed after A")

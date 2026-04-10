@@ -1,8 +1,6 @@
 module start_banner (
     input  wire       rst_n,
     input  wire       clk,
-    input  wire       frames_clk,
-    input  wire       lines_clk,
     input  wire [9:0] x,
     input  wire [9:0] y,
     input  wire [9:0] pos_x,

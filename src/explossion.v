@@ -1,24 +1,23 @@
 module explosion (
-    input  wire       rst_n,
-    input  wire       clk,
-    input  wire       frames_clk,
-    input  wire       lines_clk,
-    input  wire [9:0] x,
-    input  wire [9:0] y,
-    input  wire [9:0] pos_x,
-    input  wire [9:0] pos_y,
-    input  wire       fire,
-    input  wire [15:0] control,
-    input  wire [15:0] my_number,
-    input  wire [5:0] RGB_color,
-    output reg        active,
-    output reg        exploding,
-    output reg [1:0]  R,
-    output reg [1:0]  G,
-    output reg [1:0]  B
+    input  wire         rst_n,
+    input  wire         clk,
+    input  wire         lines_clk,
+    input  wire [9:0]   x,
+    input  wire [9:0]   y,
+    input  wire [9:0]   pos_x,
+    input  wire [9:0]   pos_y,
+    input  wire         fire,
+    input  wire [15:0]  control,
+    input  wire [15:0]  my_number,
+    input  wire [5:0]   RGB_color,
+    output reg          active,
+    output reg          exploding,
+    output reg [1:0]    R,
+    output reg [1:0]    G,
+    output reg [1:0]    B
 );
 
-  localparam [3:0]  STEPS_COUNT = 4'd6;   // stages 0..5
+  localparam [3:0]  STEPS_COUNT = 4'd6;
   localparam [15:0] FRAMES_DELAY = 16'h0960;
 
   reg [9:0]  my_x;
@@ -34,9 +33,6 @@ module explosion (
   reg [5:0] cut_size;
   reg [5:0] row_limit;
 
-  // --------------------------------------------------------------------------
-  // Explosion state / animation timing
-  // --------------------------------------------------------------------------
   always @(posedge lines_clk or negedge rst_n) begin
     if (!rst_n) begin
       frames_counter <= 16'd0;
@@ -120,13 +116,6 @@ module explosion (
     end
   end
 
-  // --------------------------------------------------------------------------
-  // Pixel painter
-  // Procedural chamfered-square explosion:
-  // - no sprites
-  // - no multiplication/division
-  // - only abs, compare, add/sub
-  // --------------------------------------------------------------------------
   always @(posedge clk) begin
     if (!rst_n) begin
       active    <= 1'b0;
@@ -144,7 +133,6 @@ module explosion (
       G      <= 2'b00;
       B      <= 2'b00;
 
-      // absolute distances to explosion center
       if (x >= my_x)
         dx <= x - my_x;
       else
@@ -155,9 +143,6 @@ module explosion (
       else
         dy <= my_y - y;
 
-      // 6 fixed sizes:
-      // total size = 4, 12, 20, 28, 36, 48
-      // half size  = 2,  6, 10, 14, 18, 24
       case (counter)
         4'd0: half_size <= 6'd2;
         4'd1: half_size <= 6'd6;
@@ -167,9 +152,6 @@ module explosion (
         default: half_size <= 6'd24;
       endcase
 
-      // chamfer amount:
-      // trims the top/bottom rows so the explosion is less boxy
-      // chosen as approx quarter of half-size, but via case to avoid division
       case (counter)
         4'd0: cut_size <= 6'd1;
         4'd1: cut_size <= 6'd2;
@@ -179,11 +161,8 @@ module explosion (
         default: cut_size <= 6'd6;
       endcase
 
-      // default full row width
       row_limit <= half_size;
 
-      // reduce width on top/bottom edge bands
-      // this creates the softened/chamfered corners
       if (dy >= (half_size - cut_size))
         row_limit <= half_size - cut_size;
 

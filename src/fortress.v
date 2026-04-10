@@ -1,8 +1,6 @@
 module fortress (
     input  wire       rst_n,
     input  wire       clk,
-    input  wire       frames_clk,
-    input  wire       lines_clk,
     input  wire [9:0] x,
     input  wire [9:0] y,
     input  wire [1:0] remaining_hits,
@@ -12,10 +10,10 @@ module fortress (
     output reg [1:0]  G,
     output reg [1:0]  B
 );
-  localparam SCREEN_MID_WIDTH = 320;
-  localparam SCREEN_HEIGHT = 480;
-  localparam FORTRESS_BLOCK_MID_WIDTH = 24;
-  localparam FORTRESS_BLOCK_MID_HEIGHT = 12;
+  localparam SCREEN_MID_WIDTH           = 320;
+  localparam SCREEN_HEIGHT              = 480;
+  localparam FORTRESS_BLOCK_MID_WIDTH   = 24;
+  localparam FORTRESS_BLOCK_MID_HEIGHT  = 12;
 
   always @(posedge clk) begin
     if (!rst_n) begin

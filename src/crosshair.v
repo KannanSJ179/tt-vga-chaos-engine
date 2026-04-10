@@ -1,8 +1,6 @@
 module crosshair (
     input  wire       rst_n,
     input  wire       clk,
-    input  wire       frames_clk,
-    input  wire       lines_clk,
     input  wire [9:0] x,
     input  wire [9:0] y,
     input  wire [9:0] pos_x,
@@ -74,16 +72,16 @@ module crosshair (
     begin
       reg [9:0] row_bitmap;
       case (row)
-        4'd0: row_bitmap = 10'b00_0000_0011;
-        4'd1: row_bitmap = 10'b00_0000_0011;
-        4'd2: row_bitmap = 10'b00_0000_0011;
-        4'd3: row_bitmap = 10'b00_0000_0011;
-        4'd4: row_bitmap = 10'b00_0000_0011;
-        4'd5: row_bitmap = 10'b00_0000_0011;
-        4'd6: row_bitmap = 10'b00_0000_0011;
-        4'd7: row_bitmap = 10'b00_0000_0011;
-        4'd8: row_bitmap = 10'b11_1111_1111;
-        4'd9: row_bitmap = 10'b11_1111_1111;
+        4'd0: row_bitmap    = 10'b00_0000_0011;
+        4'd1: row_bitmap    = 10'b00_0000_0011;
+        4'd2: row_bitmap    = 10'b00_0000_0011;
+        4'd3: row_bitmap    = 10'b00_0000_0011;
+        4'd4: row_bitmap    = 10'b00_0000_0011;
+        4'd5: row_bitmap    = 10'b00_0000_0011;
+        4'd6: row_bitmap    = 10'b00_0000_0011;
+        4'd7: row_bitmap    = 10'b00_0000_0011;
+        4'd8: row_bitmap    = 10'b11_1111_1111;
+        4'd9: row_bitmap    = 10'b11_1111_1111;
         default: row_bitmap = 10'b00_0000_0000;
       endcase
 

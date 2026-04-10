@@ -53,11 +53,11 @@ module tt_um_ds_missile_command(
   reg [7:0] crosshair_lines_delay;
   reg [7:0] explossion_lines_delay;
 
-  localparam MISSILES_PER_LEVEL = 20;
-  localparam LEVEL_DELAY_STEP = 24;
+  localparam MISSILES_PER_LEVEL     = 10;
+  localparam LEVEL_DELAY_STEP       = 24;
   localparam CROSSHAIR_FRAMES_DELAY = 16'h0100;
   localparam FRAMES_CROSSHAIR_DELAY = 16'h0100;
-  localparam EXPLOSION_COUNT = 4;
+  localparam EXPLOSION_COUNT        = 4;
 
   localparam CROSSHAIR_RGB_COLOR          = 6'b00_1100;
   localparam FORTRESS_RGB_COLOR           = 6'b01_0101;
@@ -76,10 +76,9 @@ module tt_um_ds_missile_command(
 
   wire inp_b, inp_y, inp_select, inp_start, inp_up, inp_down, inp_left, inp_right, inp_a, inp_x, inp_l, inp_r;
 
-  // ---------------- Missile system ----------------
   reg  [2:0] missile_fire;
   reg  [3:0] missile_fire_pulse;
-  reg  [1:0] missiles_in_flight; // free-running pseudo-random source
+  reg  [1:0] missiles_in_flight;
 
   reg  [9:0] missile_start_x [0:2];
   reg  [3:0] missile_coeff_x [0:2];
@@ -169,7 +168,6 @@ module tt_um_ds_missile_command(
   explosion exp_0 (
       .rst_n(rst_n),
       .clk(clk),
-      .frames_clk(vsync),
       .lines_clk(hsync),
       .x(pix_x),
       .y(pix_y),
@@ -189,7 +187,6 @@ module tt_um_ds_missile_command(
   explosion exp_1 (
       .rst_n(rst_n),
       .clk(clk),
-      .frames_clk(vsync),
       .lines_clk(hsync),
       .x(pix_x),
       .y(pix_y),
@@ -209,7 +206,6 @@ module tt_um_ds_missile_command(
   explosion exp_2 (
       .rst_n(rst_n),
       .clk(clk),
-      .frames_clk(vsync),
       .lines_clk(hsync),
       .x(pix_x),
       .y(pix_y),
@@ -229,7 +225,6 @@ module tt_um_ds_missile_command(
   explosion exp_3 (
       .rst_n(rst_n),
       .clk(clk),
-      .frames_clk(vsync),
       .lines_clk(hsync),
       .x(pix_x),
       .y(pix_y),
@@ -335,8 +330,6 @@ module tt_um_ds_missile_command(
   crosshair c (
       .rst_n(rst_n),
       .clk(clk),
-      .frames_clk(vsync),
-      .lines_clk(hsync),
       .x(pix_x),
       .y(pix_y),
       .pos_x(crosshair_x),
@@ -351,8 +344,6 @@ module tt_um_ds_missile_command(
   start_banner start (
       .rst_n(rst_n),
       .clk(clk),
-      .frames_clk(vsync),
-      .lines_clk(hsync),
       .x(pix_x),
       .y(pix_y),
       .pos_x(320),
@@ -368,8 +359,6 @@ module tt_um_ds_missile_command(
   game_over_banner over (
       .rst_n(rst_n),
       .clk(clk),
-      .frames_clk(vsync),
-      .lines_clk(hsync),
       .x(pix_x),
       .y(pix_y),
       .pos_x(320),
@@ -385,12 +374,10 @@ module tt_um_ds_missile_command(
   level_banner level_indicator (
       .rst_n(rst_n),
       .clk(clk),
-      .frames_clk(vsync),
-      .lines_clk(hsync),
       .x(pix_x),
       .y(pix_y),
-      .pos_x(70),
-      .pos_y(25),
+      .pos_x(80),
+      .pos_y(30),
       .RGB_Color(GAME_OVER_BANNER_RGB_COLOR),
       .level(level),
       .paint_banner(1'b1),
@@ -400,12 +387,9 @@ module tt_um_ds_missile_command(
       .B(level_banner_B)
   );
 
-
   fortress f(
       .rst_n(rst_n),
       .clk(clk),
-      .frames_clk(vsync),
-      .lines_clk(hsync),
       .x(pix_x),
       .y(pix_y),
       .remaining_hits(impacts),
@@ -515,17 +499,14 @@ module tt_um_ds_missile_command(
 
       level                 <= 4'b0000;
     end else begin
-      // edge detectors
       impact_pulses =
           ({1'b0, (missile_impact[0] & ~missile_impact_prev[0])}) +
           ({1'b0, (missile_impact[1] & ~missile_impact_prev[1])}) +
           ({1'b0, (missile_impact[2] & ~missile_impact_prev[2])});
 
-      // Bomb fire pulse only when game is active
       fire_pulse <= (impacts > 0) && inp_a && ~inp_a_prev;
       inp_a_prev <= inp_a;
 
-      // Restart game on START rising edge
       if (inp_start & ~inp_start_prev) begin
         if (game_over) begin
           game_over <= 1'b0;
@@ -559,17 +540,14 @@ module tt_um_ds_missile_command(
         missiles_in_flight <= missiles_in_flight + 1'b1;
       end
 
-      // Track previous all-gone state
       missiles_gone_prev <= missiles_gone;
 
-      // Missile fire pulse countdown
       if (missile_fire_pulse > 0) begin
         missile_fire_pulse <= missile_fire_pulse - 1'b1;
         if (missile_fire_pulse == 4'd1)
           missile_fire <= 3'b000;
       end
 
-      // Launch only when game is active
       if ((impacts > 0) && (start_game_pending || (missiles_gone && !missiles_gone_prev))) begin
         if (level_launches + missiles_in_flight >= MISSILES_PER_LEVEL) begin
           level_launches <= 0;
@@ -609,7 +587,7 @@ module tt_um_ds_missile_command(
         end
       end
 
-      // Crosshair
+      // Crosshair movement
       if (impacts > 0) begin
         if (inp_up) begin
           if (counter + 1'b1 < FRAMES_CROSSHAIR_DELAY) begin

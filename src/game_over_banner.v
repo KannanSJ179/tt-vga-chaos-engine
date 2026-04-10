@@ -1,8 +1,6 @@
 module game_over_banner (
     input  wire       rst_n,
     input  wire       clk,
-    input  wire       frames_clk,
-    input  wire       lines_clk,
     input  wire [9:0] x,
     input  wire [9:0] y,
     input  wire [9:0] pos_x,
@@ -15,10 +13,8 @@ module game_over_banner (
     output reg [1:0]  B
 );
 
-  localparam [9:0] SPRITE_WIDTH  = 10'd37;
-  localparam [9:0] SPRITE_HEIGHT = 10'd9;
-
-  // Shift counts: 2 -> x4, 1 -> x2
+  localparam [9:0] SPRITE_WIDTH       = 10'd37;
+  localparam [9:0] SPRITE_HEIGHT      = 10'd9;
   localparam [3:0] PIXEL_WIDTH_SHIFT  = 4'd2;
   localparam [3:0] PIXEL_HEIGHT_SHIFT = 4'd1;
 
@@ -77,8 +73,8 @@ module game_over_banner (
         5'd4:   row_bitmap = 37'b1_0001_1101_0001_0110_0010_1010_1011_0011_0000;
         5'd5:   row_bitmap = 37'b1_0101_0101_0001_0100_0010_1010_1010_0010_1000;
         5'd6:   row_bitmap = 37'b1_0101_0101_0001_0100_0010_1010_1010_0010_1000;
-        5'd7:  row_bitmap = 37'b1_0101_0101_0001_0100_0010_1001_0010_0010_1000;
-        5'd8:  row_bitmap = 37'b1_1101_0101_0001_0111_0011_1001_0011_1010_1000;
+        5'd7:   row_bitmap = 37'b1_0101_0101_0001_0100_0010_1001_0010_0010_1000;
+        5'd8:   row_bitmap = 37'b1_1101_0101_0001_0111_0011_1001_0011_1010_1000;
       endcase
 
       start_banner_pixel = row_bitmap[36 - col];

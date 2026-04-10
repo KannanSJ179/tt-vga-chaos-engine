@@ -1,9 +1,19 @@
 ![](../../workflows/gds/badge.svg) ![](../../workflows/docs/badge.svg) ![](../../workflows/test/badge.svg) ![](../../workflows/fpga/badge.svg)
 
-# Tiny Tapeout Verilog Project Template
+# Demoscene Missile Command for TinyTapeout
 
-- [Read the documentation for project](docs/info.md)
+The Verilog implementation (well sort of) of the classic [Atari's Missile Command](https://atari.com/pages/missilecommand?srsltid=AfmBOoo7Ne8JxmRSx7aoGDwawJRuy56aG9UlHu7-Bxz7Az-XN5kpcaTQ) game.
 
+![image](./img/image.png)
+
+Easy and fun to play, checkout the [details and required hardware](./docs/info.md) to get started, then just press start and begin the action!
+
+You start at level 0 (see top left screen), and will see the enemy throwing missiles waves with 1 to 3 missiles at a time targetting your gray fortress (bottom center) and you have to defend it!, move the green cursor (crosshair) and press A to throw an anti-aereal defense bomb, if the missiles touches it it will get destroyed and you'll be able to pick the wrecks to study their technology XD.
+
+Expect 10 missiles per level, on each level the missiles speed will increase until crazyness, if you receive 3 impacts to the fortress on the same level you lose, the impacts count will reset on every level change. When you see the GAME OVER banner press start to begin again.
+
+Ready to defend your homeland? 🪖 GO 🪖
+S
 ## What is Tiny Tapeout?
 
 Tiny Tapeout is an educational project that aims to make it easier and cheaper than ever to get your digital and analog designs manufactured on a real chip.

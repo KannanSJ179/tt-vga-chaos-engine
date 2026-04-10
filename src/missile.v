@@ -64,7 +64,7 @@ module missile (
     end else begin
       if (fire && !flying) begin
         init_x            <= initial_x;
-        current_x         <= initial_x;
+        current_x         <= initial_x > 10'd640 ? initial_x - 10'd640 : initial_x;
         current_y         <= 10'd0;
         coeff_x           <= coefficient_x;
         coeff_y           <= coefficient_y;
