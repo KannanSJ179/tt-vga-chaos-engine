@@ -21,7 +21,7 @@
 
 
 
-module ACC (
+module ACC(
     input clk,
     input reset,
     input load,
