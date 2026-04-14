@@ -12,7 +12,7 @@ module ACC(
     output reg [7:0] data_out
 );
 
-always @(posedge clk or posedge reset) begin
+always @(posedge clk) begin
     if (reset)
         data_out <= 8'b00000000;
     else if (load)
