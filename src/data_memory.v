@@ -8,24 +8,23 @@
 module data_memory(
     input         clk,
     input         Write_en,
-    input   [7:0] Addr,      // SHRINK: Changed from [7:0] to [4:0] (5 bits)
-    input   [7:0] Data_in,   // Data is still 8 bits wide!
-    output [7:0] Data_out
+    input   [7:0] Addr,
+    input   [7:0] Data_in,
+    output  [7:0] Data_out
 );
 
     // -------------------------------------------------------------------------
-    // OPTIMIZED RAM ARRAY
-    // Exactly 32 mailboxes (0 to 31), each holding an 8-bit number.
+    // SHRINK RAM TO FIT IN SILICON
+    // 8 mailboxes (0 to 7), each holding an 8-bit number.
     // -------------------------------------------------------------------------
-    reg [7:0] ram [0:31]; 
+    reg [7:0] ram [0:7]; 
 
     always @(posedge clk) begin
         if (Write_en) begin
-            ram[Addr] <= Data_in;
+            ram[Addr[2:0]] <= Data_in; // Sliced to 3 bits
         end
     end
 
-    assign Data_out = ram[Addr];
+    assign Data_out = ram[Addr[2:0]];  // Sliced to 3 bits
 
 endmodule
-
