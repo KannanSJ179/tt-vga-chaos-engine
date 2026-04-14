@@ -57,7 +57,7 @@ ACC acc (
 data_memory mem (
     .clk(clk),
     .Write_en(mem_write),
-    .Addr(operand_out),
+    .Addr(operand_out[2:0]),
     .Data_in(acc_out),
     .Data_out(mem_data_out)
 );
