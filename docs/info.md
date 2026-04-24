@@ -1,20 +1,76 @@
-<!---
-
-This file is used to generate your project datasheet. Please fill in the information below and delete any unused
-sections.
-
-You can also include images in this folder and reference them in the markdown. Each image must be less than
-512 kb in size, and the combined size of all images must be less than 1 MB.
--->
+# Multi-Mode Procedural VGA Graphics Engine
 
 ## How it works
 
-Explain how your project works
+This project generates real-time VGA graphics using purely arithmetic logic.
+There is no framebuffer, no ROM, and no lookup tables — every pixel is computed
+on-the-fly based on its position and a time counter.
+
+At every pixel clock:
+
+* The VGA controller provides `(hpos, vpos)`
+* These are converted into centered coordinates `(cx, cy)`
+* A radial approximation is computed using an octagonal norm
+* A frame counter (`t`) acts as a time variable
+* One of four rendering modes generates a pattern
+* The pattern is mapped directly to RGB outputs (RGB222)
+
+A 10-bit frame counter increments once per frame:
+
+* Upper 2 bits select the rendering mode
+* Lower bits provide animation over time
+
+The result is a continuously evolving procedural graphics display.
+
+---
+
+## Rendering Modes
+
+### Mode 0 — Radial Energy
+
+* Concentric rings expanding outward
+* Slight vortex distortion
+* Smooth animated motion
+
+### Mode 1 — Plasma
+
+* Diagonal flowing gradients
+* Continuous color blending
+* Classic demoscene-style effect
+
+### Mode 2 — Interference
+
+* Grid-like wave patterns
+* Crossed coordinate interaction
+* Structured geometric visuals
+
+### Mode 3 — Chaos
+
+* Nonlinear bitwise patterns
+* Rapidly changing textures
+* High visual complexity
+
+---
+
+## Output
+
+* Resolution: 640×480 (VGA)
+* Color: RGB222 (2 bits per channel)
+* Fully real-time procedural rendering
+
+---
 
 ## How to test
 
-Explain how to use your project
+1. Connect a VGA monitor via TinyTapeout VGA PMOD
+2. Provide a 25 MHz clock (approx 25.175 MHz)
+3. Release reset (`rst_n`)
+4. The display will automatically:
 
-## External hardware
+   * Start rendering
+   * Cycle through all 4 modes
+   * Continuously animate
 
-List external hardware used in your project (e.g. PMOD, LED display, etc), if any
+**Expected output:**
+A full-screen animated display cycling through procedural patterns:
+rings → plasma → interference → chaos.
