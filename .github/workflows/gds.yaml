@@ -1,5 +1,4 @@
 name: gds
-
 on:
   push:
   workflow_dispatch:
@@ -8,11 +7,10 @@ jobs:
   gds:
     runs-on: ubuntu-24.04
     steps:
-      - name: checkout repo
-        uses: actions/checkout@v6
+      - name: Checkout repo
+        uses: actions/checkout@v4
         with:
           submodules: recursive
-
       - name: Build GDS
         uses: TinyTapeout/tt-gds-action@ttsky26a
         with:
@@ -29,19 +27,28 @@ jobs:
     needs: gds
     runs-on: ubuntu-24.04
     steps:
-      - name: checkout repo
-        uses: actions/checkout@v6
+      - name: Checkout repo
+        uses: actions/checkout@v4
         with:
           submodules: recursive
-
       - name: GL test
         uses: TinyTapeout/tt-gds-action/gl_test@ttsky26a
+      - name: Check results exist
+        id: check
+        if: always()
+        run: |
+          [ -f test/results.xml ] && echo "exists=true" >> $GITHUB_OUTPUT || echo "exists=false" >> $GITHUB_OUTPUT
+      - name: Test summary
+        if: always() && steps.check.outputs.exists == 'true'
+        uses: test-summary/action@v2.3
+        with:
+          paths: test/results.xml
 
   viewer:
     needs: gds
     runs-on: ubuntu-24.04
     permissions:
-      pages: write      # to deploy to Pages
-      id-token: write   # to verify the deployment originates from an appropriate source
+      pages: write
+      id-token: write
     steps:
       - uses: TinyTapeout/tt-gds-action/viewer@ttsky26a
